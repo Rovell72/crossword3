@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кроссворд: трудовой коллектив</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;700&family=Russo+One&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --denim: #1f3a5f;
+    --ink: #14212f;
+    --bg: #e9eef3;
+    --paper: #ffffff;
+    --yellow: #ffc72c;
+    --yellow-soft: #ffeaa6;
+    --ok: #2f7d4e;
+    --bad: #c23b31;
+    --muted: #5b6b7d;
+    --cols: 13;
+    --cell: min(46px, calc((100vw - 48px) / var(--cols)));
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Golos Text", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 {
+    margin: 0 0 6px;
+    font-family: "Russo One", "Arial Black", Impact, sans-serif;
+    font-weight: 400;
+    font-size: clamp(28px, 5vw, 44px);
+    line-height: 1.1;
+    color: var(--denim);
+  }
+  .lead { margin: 0 0 24px; color: var(--muted); max-width: 60ch; }
+
+  .layout { display: grid; gap: 28px; align-items: start; }
+  @media (min-width: 900px) {
+    .layout { grid-template-columns: auto minmax(260px, 1fr); }
+  }
+
+  .clue-bar {
+    min-height: 3.2em;
+    margin: 0 0 12px;
+    padding: 10px 14px;
+    background: var(--paper);
+    border-left: 6px solid var(--yellow);
+    font-weight: 500;
+  }
+  .clue-bar small { display: block; color: var(--muted); font-weight: 400; }
+
+  .grid {
+    --gap: 2px;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), var(--cell));
+    grid-auto-rows: var(--cell);
+    gap: var(--gap);
+    padding: var(--gap);
+    background: var(--denim);
+    width: max-content;
+    max-width: 100%;
+  }
+  .void { background: var(--denim); }
+  .cell { position: relative; background: var(--paper); }
+  .cell .num {
+    position: absolute; top: 1px; left: 3px;
+    font-size: 9px; line-height: 1; color: var(--muted);
+    pointer-events: none; z-index: 1;
+  }
+  .cell input {
+    width: 100%; height: 100%;
+    margin: 0; padding: 6px 0 0;
+    border: 0; border-radius: 0;
+    background: transparent;
+    text-align: center;
+    font: 700 max(16px, calc(var(--cell) * 0.55)) "Golos Text", system-ui, sans-serif;
+    color: var(--ink);
+    text-transform: uppercase;
+    caret-color: transparent;
+    cursor: pointer;
+    outline: none;
+  }
+  .cell.in-word { background: var(--yellow-soft); }
+  .cell.active { background: var(--yellow); }
+  .cell.shown input { color: var(--muted); }
+  .cell.wrong { background: #f6c9c5; }
+  .cell.wrong input { color: var(--bad); }
+  .cell input:focus-visible { box-shadow: inset 0 0 0 3px var(--denim); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
+  button.btn {
+    font: 500 15px "Golos Text", system-ui, sans-serif;
+    padding: 9px 16px;
+    border: 2px solid var(--denim);
+    background: transparent;
+    color: var(--denim);
+    cursor: pointer;
+  }
+  button.btn.primary { background: var(--denim); color: #fff; }
+  button.btn:hover { background: var(--denim); color: #fff; }
+  button.btn:focus-visible, .clues button:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+
+  .status { min-height: 1.5em; margin: 4px 0 0; color: var(--muted); }
+  .banner {
+    margin: 12px 0 0; padding: 12px 14px;
+    background: var(--ok); color: #fff; font-weight: 700;
+  }
+  .banner[hidden] { display: none; }
+
+  .clues h2 {
+    margin: 0 0 8px;
+    font-family: "Russo One", "Arial Black", Impact, sans-serif;
+    font-weight: 400; font-size: 20px; color: var(--denim);
+  }
+  .clues ol { list-style: none; margin: 0 0 24px; padding: 0; }
+  .clues li + li { margin-top: 2px; }
+  .clues button {
+    display: block; width: 100%;
+    padding: 8px 12px;
+    background: var(--paper);
+    border: 0; border-left: 6px solid transparent;
+    text-align: left;
+    font: 400 15px/1.4 "Golos Text", system-ui, sans-serif;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .clues button b { display: inline-block; min-width: 1.6em; color: var(--denim); }
+  .clues .len { color: var(--muted); white-space: nowrap; }
+  .clues li.current button { border-left-color: var(--yellow); background: var(--yellow-soft); }
+  .clues li.done button { color: var(--muted); text-decoration: line-through; border-left-color: var(--ok); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Трудовой коллектив</h1>
+  <p class="lead">Кроссворд из восьми слов. Нажмите на клетку и вводите буквы с клавиатуры. Повторный клик по клетке или пробел меняет направление.</p>
+
+  <div class="layout">
+    <section aria-label="Игровое поле">
+      <p class="clue-bar" id="clueBar" aria-live="polite"></p>
+      <div class="grid" id="grid" role="group" aria-label="Кроссворд"></div>
+      <div class="actions">
+        <button class="btn primary" id="btnCheck" type="button">Проверить</button>
+        <button class="btn" id="btnLetter" type="button">Подсказать букву</button>
+        <button class="btn" id="btnWord" type="button">Показать слово</button>
+        <button class="btn" id="btnClear" type="button">Начать заново</button>
+      </div>
+      <p class="status" id="status" role="status"></p>
+      <p class="banner" id="banner" hidden>Кроссворд решён. Коллектив в сборе!</p>
+    </section>
+
+    <aside class="clues" aria-label="Вопросы">
+      <h2>По горизонтали</h2>
+      <ol id="clueAcross"></ol>
+      <h2>По вертикали</h2>
+      <ol id="clueDown"></ol>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---- Данные кроссворда: слово, строка, столбец, направление, вопрос ----
+  const WORDS = [
+    { a: 'КОЛЛЕКТИВ', r: 5,  c: 4,  d: 'across', clue: 'Группа людей, объединённых общей работой и целями' },
+    { a: 'ЗАРПЛАТА',  r: 10, c: 0,  d: 'across', clue: 'Денежная плата работнику за выполненный труд' },
+    { a: 'ГРАФИК',    r: 0,  c: 4,  d: 'down',   clue: 'Расписание рабочих смен и часов' },
+    { a: 'ДОЛЖНОСТЬ', r: 3,  c: 6,  d: 'down',   clue: 'Место работника в штатной структуре организации' },
+    { a: 'ПРЕМИЯ',    r: 3,  c: 8,  d: 'down',   clue: 'Денежное поощрение сверх оклада' },
+    { a: 'ОТПУСК',    r: 4,  c: 10, d: 'down',   clue: 'Оплачиваемый период отдыха от работы' },
+    { a: 'НАСТАВНИК', r: 0,  c: 12, d: 'down',   clue: 'Опытный сотрудник, который обучает новичка' },
+    { a: 'БРИГАДИР',  r: 3,  c: 2,  d: 'down',   clue: 'Руководитель небольшой производственной группы' }
+  ];
+  const STORAGE_KEY = 'crossword-labor-collective-v1';
+
+  const $ = id => document.getElementById(id);
+  const gridEl = $('grid'), barEl = $('clueBar'), statusEl = $('status'), bannerEl = $('banner');
+  const key = (r, c) => r + ',' + c;
+
+  // ---- Построение модели ----
+  const rows = Math.max(...WORDS.map(w => w.d === 'down' ? w.r + w.a.length : w.r + 1));
+  const cols = Math.max(...WORDS.map(w => w.d === 'across' ? w.c + w.a.length : w.c + 1));
+  const cells = new Map();
+
+  WORDS.forEach((w, i) => {
+    w.cells = [];
+    for (let k = 0; k < w.a.length; k++) {
+      const r = w.r + (w.d === 'down' ? k : 0);
+      const c = w.c + (w.d === 'across' ? k : 0);
+      let cell = cells.get(key(r, c));
+      if (!cell) {
+        cell = { r, c, letter: w.a[k], words: {} };
+        cells.set(key(r, c), cell);
+      } else if (cell.letter !== w.a[k]) {
+        console.error('Конфликт букв в клетке', r, c);
+      }
+      cell.words[w.d] = i;
+      w.cells.push(cell);
+    }
+  });
+
+  // Нумерация по порядку чтения
+  const numAt = new Map();
+  let counter = 0;
+  [...WORDS].sort((x, y) => x.r - y.r || x.c - y.c).forEach(w => {
+    const k = key(w.r, w.c);
+    if (!numAt.has(k)) numAt.set(k, ++counter);
+    w.num = numAt.get(k);
+  });
+  const order = [
+    ...WORDS.map((w, i) => i).filter(i => WORDS[i].d === 'across').sort((a, b) => WORDS[a].num - WORDS[b].num),
+    ...WORDS.map((w, i) => i).filter(i => WORDS[i].d === 'down').sort((a, b) => WORDS[a].num - WORDS[b].num)
+  ];
+
+  // ---- Отрисовка поля ----
+  document.documentElement.style.setProperty('--cols', cols);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = cells.get(key(r, c));
+      if (!cell) {
+        const v = document.createElement('div');
+        v.className = 'void';
+        gridEl.appendChild(v);
+        continue;
+      }
+      const el = document.createElement('div');
+      el.className = 'cell';
+      const n = numAt.get(key(r, c));
+      if (n) {
+        const s = document.createElement('span');
+        s.className = 'num';
+        s.textContent = n;
+        el.appendChild(s);
+      }
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.maxLength = 2;
+      inp.autocomplete = 'off';
+      inp.autocapitalize = 'characters';
+      inp.spellcheck = false;
+      inp.setAttribute('inputmode', 'text');
+      inp.setAttribute('aria-label', 'Строка ' + (r + 1) + ', столбец ' + (c + 1));
+      el.appendChild(inp);
+      gridEl.appendChild(el);
+      cell.el = el;
+      cell.input = inp;
+    }
+  }
+
+  // ---- Список вопросов ----
+  WORDS.forEach((w, i) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.innerHTML = '<b>' + w.num + '.</b> ' + w.clue + ' <span class="len">(' + w.a.length + ')</span>';
+    btn.addEventListener('click', () => {
+      state.dir = w.d;
+      select(firstEmpty(w));
+    });
+    li.appendChild(btn);
+    (w.d === 'across' ? $('clueAcross') : $('clueDown')).appendChild(li);
+    w.li = li;
+  });
+
+  // ---- Состояние ----
+  const state = { cell: null, dir: 'across' };
+  const curWord = () => WORDS[state.cell.words[state.dir]];
+  const firstEmpty = w => w.cells.find(c => !c.input.value) || w.cells[0];
+
+  function select(cell, opts) {
+    opts = opts || {};
+    const has = d => cell.words[d] !== undefined;
+    if (opts.toggle && state.cell === cell && has('across') && has('down')) {
+      state.dir = state.dir === 'across' ? 'down' : 'across';
+    } else if (!has(state.dir)) {
+      state.dir = state.dir === 'across' ? 'down' : 'across';
+    }
+    state.cell = cell;
+    paintSelection();
+    if (!opts.noFocus) cell.input.focus({ preventScroll: true });
+  }
+
+  function paintSelection() {
+    cells.forEach(c => c.el.classList.remove('in-word', 'active'));
+    const w = curWord();
+    w.cells.forEach(c => c.el.classList.add('in-word'));
+    state.cell.el.classList.add('active');
+    barEl.innerHTML = '<small>' + (w.d === 'across' ? 'По горизонтали' : 'По вертикали') + ', ' + w.num + '</small>' + w.clue;
+    WORDS.forEach(x => x.li.classList.toggle('current', x === w));
+  }
+
+  function setLetter(cell, v, shown) {
+    cell.input.value = v;
+    cell.el.classList.remove('wrong');
+    cell.el.classList.toggle('shown', !!shown && !!v);
+  }
+
+  function step(delta) {
+    const w = curWord();
+    const next = w.cells[w.cells.indexOf(state.cell) + delta];
+    if (next) select(next);
+  }
+
+  function refresh() {
+    let done = 0;
+    WORDS.forEach(w => {
+      const ok = w.cells.every(c => c.input.value === c.letter);
+      w.li.classList.toggle('done', ok);
+      if (ok) done++;
+    });
+    bannerEl.hidden = done !== WORDS.length;
+    if (done !== WORDS.length) statusEl.textContent = 'Разгадано слов: ' + done + ' из ' + WORDS.length;
+    else statusEl.textContent = '';
+    save();
+  }
+
+  function save() {
+    try {
+      const data = {};
+      cells.forEach((c, k) => { if (c.input.value) data[k] = [c.input.value, c.el.classList.contains('shown') ? 1 : 0]; });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) { /* хранилище недоступно — не страшно */ }
+  }
+
+  function load() {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      Object.keys(data).forEach(k => {
+        const c = cells.get(k);
+        if (c) setLetter(c, data[k][0], data[k][1]);
+      });
+    } catch (e) { /* игнорируем */ }
+  }
+
+  // ---- Ввод ----
+  cells.forEach(cell => {
+    const inp = cell.input;
+
+    cell.el.addEventListener('click', () => select(cell, { toggle: true }));
+    inp.addEventListener('focus', () => { if (state.cell !== cell) select(cell, { noFocus: true }); });
+
+    inp.addEventListener('input', () => {
+      let v = inp.value.toUpperCase().replace(/Ё/g, 'Е');
+      v = v.slice(-1);
+      if (!/[А-Я]/.test(v)) v = '';
+      setLetter(cell, v);
+      if (v) step(1);
+      refresh();
+    });
+
+    inp.addEventListener('keydown', e => {
+      const k = e.key;
+      if (k === 'Backspace') {
+        e.preventDefault();
+        if (inp.value) {
+          setLetter(cell, '');
+        } else {
+          const w = curWord();
+          const prev = w.cells[w.cells.indexOf(cell) - 1];
+          if (prev) { setLetter(prev, ''); select(prev); }
+        }
+        refresh();
+      } else if (k === 'Delete') {
+        e.preventDefault();
+        setLetter(cell, '');
+        refresh();
+      } else if (k === ' ') {
+        e.preventDefault();
+        select(cell, { toggle: true });
+      } else if (k === 'Tab') {
+        e.preventDefault();
+        const pos = order.indexOf(state.cell.words[state.dir]);
+        const next = order[(pos + (e.shiftKey ? -1 : 1) + order.length) % order.length];
+        state.dir = WORDS[next].d;
+        select(firstEmpty(WORDS[next]));
+      } else if (k.startsWith('Arrow')) {
+        e.preventDefault();
+        const dr = k === 'ArrowDown' ? 1 : k === 'ArrowUp' ? -1 : 0;
+        const dc = k === 'ArrowRight' ? 1 : k === 'ArrowLeft' ? -1 : 0;
+        const wantDir = dr ? 'down' : 'across';
+        if (cell.words[wantDir] !== undefined) state.dir = wantDir;
+        const next = cells.get(key(cell.r + dr, cell.c + dc));
+        if (next) select(next);
+        else select(cell);
+      }
+    });
+  });
+
+  // ---- Кнопки ----
+  $('btnCheck').addEventListener('click', () => {
+    let wrong = 0, filled = 0;
+    cells.forEach(c => {
+      const v = c.input.value;
+      if (v) {
+        filled++;
+        if (v !== c.letter) { c.el.classList.add('wrong'); wrong++; }
+      }
+    });
+    if (!filled) statusEl.textContent = 'Пока нечего проверять: введите хотя бы одну букву.';
+    else if (wrong) statusEl.textContent = 'Неверных букв: ' + wrong + '. Они подсвечены красным.';
+    else statusEl.textContent = 'Все введённые буквы верны.';
+  });
+
+  $('btnLetter').addEventListener('click', () => {
+    setLetter(state.cell, state.cell.letter, true);
+    refresh();
+    state.cell.input.focus({ preventScroll: true });
+  });
+
+  $('btnWord').addEventListener('click', () => {
+    curWord().cells.forEach(c => setLetter(c, c.letter, c.input.value !== c.letter));
+    refresh();
+  });
+
+  $('btnClear').addEventListener('click', () => {
+    if (!confirm('Стереть все введённые буквы?')) return;
+    cells.forEach(c => setLetter(c, ''));
+    refresh();
+    select(WORDS[order[0]].cells[0], { noFocus: true });
+  });
+
+  // ---- Старт ----
+  load();
+  state.dir = 'across';
+  select(WORDS[order[0]].cells[0], { noFocus: true });
+  refresh();
+})();
+</script>
+</body>
+</html>
